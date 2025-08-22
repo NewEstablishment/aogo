@@ -39,7 +39,7 @@ type SpawnProcessResponse struct {
 	ID string `json:"id"`
 }
 
-func (mu *MU) SendMessage(process string, data string, tags *[]tag.Tag, anchor string, s *signer.Signer) (string, error) {
+func (mu *MU) GenerateMessage(process string, data string, tags *[]tag.Tag, anchor string, s *signer.Signer) (*data_item.DataItem, error) {
 	if tags == nil {
 		tags = &[]tag.Tag{}
 	}
@@ -51,9 +51,12 @@ func (mu *MU) SendMessage(process string, data string, tags *[]tag.Tag, anchor s
 	dataItem := data_item.New([]byte(data), process, anchor, tags)
 	err := dataItem.Sign(s)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	return dataItem, nil
+}
 
+func (mu *MU) SendMessageDataItem(dataItem *data_item.DataItem) (string, error) {
 	req, err := http.NewRequest("POST", mu.url, bytes.NewBuffer(dataItem.Raw))
 	if err != nil {
 		return "", err
@@ -84,7 +87,25 @@ func (mu *MU) SendMessage(process string, data string, tags *[]tag.Tag, anchor s
 	return res.ID, nil
 }
 
+func (mu *MU) SendMessage(process string, data string, tags *[]tag.Tag, anchor string, s *signer.Signer) (string, error) {
+	if s == nil {
+		return "", fmt.Errorf("signer is nil")
+	}
+	dataItem, err := mu.GenerateMessage(process, data, tags, anchor, s)
+	if err != nil {
+		return "", err
+	}
+	result, err := mu.SendMessageDataItem(dataItem)
+	if err != nil {
+		return "", err
+	}
+	return result, nil
+}
+
 func (mu *MU) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (string, error) {
+	if s == nil {
+		return "", fmt.Errorf("signer is nil")
+	}
 	if data == nil {
 		data = []byte("1984")
 	}

@@ -3,6 +3,7 @@ package aogo
 import (
 	"github.com/liteseed/goar/signer"
 	"github.com/liteseed/goar/tag"
+	"github.com/liteseed/goar/transaction/data_item"
 )
 
 const (
@@ -48,6 +49,14 @@ func WthCU(url string) func(*AO) {
 }
 
 // MU Functions
+
+func (ao *AO) GenerateMessage(process string, data string, tags *[]tag.Tag, anchor string, s *signer.Signer) (*data_item.DataItem, error) {
+	return ao.mu.GenerateMessage(process, data, tags, anchor, s)
+}
+
+func (ao *AO) SendMessageDataItem(dataItem *data_item.DataItem) (string, error) {
+	return ao.mu.SendMessageDataItem(dataItem)
+}
 
 func (ao *AO) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (string, error) {
 	return ao.mu.SpawnProcess(module, data, tags, s)

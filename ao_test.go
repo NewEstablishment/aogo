@@ -176,8 +176,9 @@ func TestLoadResult_AO(t *testing.T) {
 		})
 
 		ao := NewAOMock(cuServer.URL, "")
-		_, err := ao.LoadResult("nonExistentProcess", "nonExistentMessage")
-		assert.Error(t, err)
+		response, err := ao.LoadResult("nonExistentProcess", "nonExistentMessage")
+		assert.Equal(t, "not found", response.Error)
+		assert.Nil(t, err)
 	})
 
 	t.Run("HTTPErrorResponse", func(t *testing.T) {
@@ -256,8 +257,9 @@ func TestDryRun_AO(t *testing.T) {
 			Tags:   &[]tag.Tag{},
 		}
 
-		_, err := ao.DryRun(message)
-		assert.Error(t, err)
+		response, err := ao.DryRun(message)
+		assert.Equal(t, "invalid format", response.Error)
+		assert.Nil(t, err)
 	})
 
 	t.Run("HTTPErrorResponse", func(t *testing.T) {
