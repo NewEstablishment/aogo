@@ -102,16 +102,17 @@ func (mu *MU) SendMessage(process string, data string, tags *[]tag.Tag, anchor s
 	return result, nil
 }
 
-func (mu *MU) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (string, error) {
+// GenerateProcess creates and signs a DataItem for spawning a process.
+func (mu *MU) GenerateProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (*data_item.DataItem, error) {
 	if s == nil {
-		return "", fmt.Errorf("signer is nil")
+		return nil, fmt.Errorf("signer is nil")
 	}
 	if data == nil {
 		data = []byte("1984")
 	}
 
-	// Initialize newTags with the base tags
-	newTags := []tag.Tag{
+	// Base tags for a Process
+	processTags := []tag.Tag{
 		{Name: "Data-Protocol", Value: "ao"},
 		{Name: "Variant", Value: "ao.TN.1"},
 		{Name: "Type", Value: "Process"},
@@ -119,14 +120,17 @@ func (mu *MU) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer
 		{Name: "Module", Value: module},
 		{Name: "SDK", Value: SDK},
 	}
+	processTags = append(processTags, tags...)
 
-	newTags = append(newTags, tags...)
-
-	dataItem := data_item.New(data, "", "", &newTags)
-	err := dataItem.Sign(s)
-	if err != nil {
-		return "", err
+	dataItem := data_item.New(data, "", "", &processTags)
+	if err := dataItem.Sign(s); err != nil {
+		return nil, err
 	}
+	return dataItem, nil
+}
+
+// SendProcessDataItem posts a process DataItem and returns the resulting process ID.
+func (mu *MU) SendProcessDataItem(dataItem *data_item.DataItem) (string, error) {
 	req, err := http.NewRequest("POST", mu.url, bytes.NewBuffer(dataItem.Raw))
 	if err != nil {
 		return "", err
@@ -139,18 +143,26 @@ func (mu *MU) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return "", fmt.Errorf("request failed: %s", resp.Status)
+	}
+
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
-	if resp.StatusCode >= http.StatusBadRequest {
-		return "", fmt.Errorf("request failed: %s", resp.Status)
-	}
 	var res SpawnProcessResponse
-	err = json.Unmarshal(b, &res)
-	if err != nil {
+	if err := json.Unmarshal(b, &res); err != nil {
 		return "", fmt.Errorf("failed to unmarshal response: %v", err)
 	}
-
 	return res.ID, nil
+}
+
+func (mu *MU) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (string, error) {
+	dataItem, err := mu.GenerateProcess(module, data, tags, s)
+	if err != nil {
+		return "", err
+	}
+	return mu.SendProcessDataItem(dataItem)
 }

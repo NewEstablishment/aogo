@@ -58,6 +58,14 @@ func (ao *AO) SendMessageDataItem(dataItem *data_item.DataItem) (string, error) 
 	return ao.mu.SendMessageDataItem(dataItem)
 }
 
+func (ao *AO) GenerateProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (*data_item.DataItem, error) {
+	return ao.mu.GenerateProcess(module, data, tags, s)
+}
+
+func (ao *AO) SendProcessDataItem(dataItem *data_item.DataItem) (string, error) {
+	return ao.mu.SendProcessDataItem(dataItem)
+}
+
 func (ao *AO) SpawnProcess(module string, data []byte, tags []tag.Tag, s *signer.Signer) (string, error) {
 	return ao.mu.SpawnProcess(module, data, tags, s)
 }
